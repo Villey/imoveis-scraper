@@ -1,0 +1,106 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\joseh\\Documents\\Visual Studio\\ImobiliariaScrapper\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F495017D-4F8C-44C4-3264-683FCFDA5F59}|ImobiliariaScrapper\\ImobiliariaScrapper.csproj|c:\\users\\joseh\\documents\\visual studio\\imobiliariascrapper\\imobiliariascrapper\\services\\akitemscraper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F495017D-4F8C-44C4-3264-683FCFDA5F59}|ImobiliariaScrapper\\ImobiliariaScrapper.csproj|solutionrelative:imobiliariascrapper\\services\\akitemscraper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F495017D-4F8C-44C4-3264-683FCFDA5F59}|ImobiliariaScrapper\\ImobiliariaScrapper.csproj|c:\\users\\joseh\\documents\\visual studio\\imobiliariascrapper\\imobiliariascrapper\\services\\kazascraper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F495017D-4F8C-44C4-3264-683FCFDA5F59}|ImobiliariaScrapper\\ImobiliariaScrapper.csproj|solutionrelative:imobiliariascrapper\\services\\kazascraper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F495017D-4F8C-44C4-3264-683FCFDA5F59}|ImobiliariaScrapper\\ImobiliariaScrapper.csproj|c:\\users\\joseh\\documents\\visual studio\\imobiliariascrapper\\imobiliariascrapper\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F495017D-4F8C-44C4-3264-683FCFDA5F59}|ImobiliariaScrapper\\ImobiliariaScrapper.csproj|solutionrelative:imobiliariascrapper\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F495017D-4F8C-44C4-3264-683FCFDA5F59}|ImobiliariaScrapper\\ImobiliariaScrapper.csproj|c:\\users\\joseh\\documents\\visual studio\\imobiliariascrapper\\imobiliariascrapper\\models\\filtroconsulta.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F495017D-4F8C-44C4-3264-683FCFDA5F59}|ImobiliariaScrapper\\ImobiliariaScrapper.csproj|solutionrelative:imobiliariascrapper\\models\\filtroconsulta.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 58,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{7513ff4e-9271-4984-bbcd-46ff9e185399}"
+            }
+          ]
+        },
+        {
+          "DockedHeight": 160,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "FiltroConsulta.cs",
+              "DocumentMoniker": "C:\\Users\\joseh\\Documents\\Visual Studio\\ImobiliariaScrapper\\ImobiliariaScrapper\\Models\\FiltroConsulta.cs",
+              "RelativeDocumentMoniker": "ImobiliariaScrapper\\Models\\FiltroConsulta.cs",
+              "ToolTip": "C:\\Users\\joseh\\Documents\\Visual Studio\\ImobiliariaScrapper\\ImobiliariaScrapper\\Models\\FiltroConsulta.cs",
+              "RelativeToolTip": "ImobiliariaScrapper\\Models\\FiltroConsulta.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-18T17:04:57.689Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AkitemScraper.cs",
+              "DocumentMoniker": "C:\\Users\\joseh\\Documents\\Visual Studio\\ImobiliariaScrapper\\ImobiliariaScrapper\\Services\\AkitemScraper.cs",
+              "RelativeDocumentMoniker": "ImobiliariaScrapper\\Services\\AkitemScraper.cs",
+              "ToolTip": "C:\\Users\\joseh\\Documents\\Visual Studio\\ImobiliariaScrapper\\ImobiliariaScrapper\\Services\\AkitemScraper.cs",
+              "RelativeToolTip": "ImobiliariaScrapper\\Services\\AkitemScraper.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAA0AAABCAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-18T03:02:46.971Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "KazaScraper.cs",
+              "DocumentMoniker": "C:\\Users\\joseh\\Documents\\Visual Studio\\ImobiliariaScrapper\\ImobiliariaScrapper\\Services\\KazaScraper.cs",
+              "RelativeDocumentMoniker": "ImobiliariaScrapper\\Services\\KazaScraper.cs",
+              "ToolTip": "C:\\Users\\joseh\\Documents\\Visual Studio\\ImobiliariaScrapper\\ImobiliariaScrapper\\Services\\KazaScraper.cs",
+              "RelativeToolTip": "ImobiliariaScrapper\\Services\\KazaScraper.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-18T02:35:08.326Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\joseh\\Documents\\Visual Studio\\ImobiliariaScrapper\\ImobiliariaScrapper\\Program.cs",
+              "RelativeDocumentMoniker": "ImobiliariaScrapper\\Program.cs",
+              "ToolTip": "C:\\Users\\joseh\\Documents\\Visual Studio\\ImobiliariaScrapper\\ImobiliariaScrapper\\Program.cs",
+              "RelativeToolTip": "ImobiliariaScrapper\\Program.cs",
+              "ViewState": "AgIAABUAAAAAAAAAAAAAABIAAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-07-26T16:28:58.794Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
