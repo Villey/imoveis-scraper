@@ -7,7 +7,7 @@ namespace ImobiliariaScrapper.Services;
 
 public class AkitemScraper : AbstractScraper, IScraper
 {
-    private static readonly string BaseDomain = "akitem" + "imoveis.com.br";
+    private static readonly string BaseDomain = "akitemimoveis.com.br";
 
     public string NomeImobiliaria => "AkiTem";
 
@@ -16,10 +16,13 @@ public class AkitemScraper : AbstractScraper, IScraper
     public string CriarUrl(int pagina)
     {
         string negocio = _filtro.Negocio == TipoNegocio.Venda ? "venda" : "aluguel";
-        string cidade = _filtro.ApenasBauru ? "bauru" : "todas";
-        string maxParam = _filtro.ValorMaximo > 0 ? $"&preco-max={_filtro.ValorMaximo.ToString(CultureInfo.InvariantCulture)}" : "";
+        string escopo = _filtro.ApenasBauru ? "sp/bauru/" : "";
+        string maxParam = _filtro.ValorMaximo > 0 
+            ? $"&valor_max={_filtro.ValorMaximo.ToString("F0", CultureInfo.InvariantCulture)}" 
+            : "";
+        string pageParam = pagina > 1 ? $"&page={pagina}" : "";
 
-        return $"https://{BaseDomain}/busca/{negocio}/casa/{cidade}?ordem=menor-preco{maxParam}&page={pagina}";
+        return $"https://{BaseDomain}/imoveis/{negocio}/casa/{escopo}?quartos=2{maxParam}&ordem=preco-crescente{pageParam}";
     }
 
     public async Task<IEnumerable<Imovel>> ExtrairImovelAsync()
@@ -50,7 +53,6 @@ public class AkitemScraper : AbstractScraper, IScraper
             }
 
             var cards = await page.QuerySelectorAllAsync(".card-imovel");
-
             if (cards.Count == 0 || pagina >= 15)
             {
                 LogFinal("sem mais imóveis nesta busca");
@@ -65,10 +67,9 @@ public class AkitemScraper : AbstractScraper, IScraper
                 var locTexto = locElement != null ? await locElement.InnerTextAsync() : string.Empty;
                 var bairroTexto = CleanBairro(locTexto);
 
-                // 2. Link
+                // 2. Link do imóvel
                 var linkElement = await card.QuerySelectorAsync("a.descricao, a[href*='/imovel/']");
                 var href = linkElement != null ? await linkElement.GetAttributeAsync("href") : string.Empty;
-
                 string linkCompleto = string.IsNullOrEmpty(href)
                     ? string.Empty
                     : (href.StartsWith("http") ? href : $"https://{BaseDomain}{href}");
@@ -76,10 +77,14 @@ public class AkitemScraper : AbstractScraper, IScraper
                 // 3. Preço
                 string termoValor = _filtro.Negocio == TipoNegocio.Venda ? "Venda" : "Locação";
                 var precoElement = await card.QuerySelectorAsync($".valor:has-text('{termoValor}')");
+                if (precoElement == null)
+                {
+                    precoElement = await card.QuerySelectorAsync(".valor");
+                }
                 var precoTexto = precoElement != null ? await precoElement.InnerTextAsync() : string.Empty;
                 decimal preco = LimparEConverterPreco(precoTexto);
 
-                // 4. Código
+                // 4. Código do imóvel
                 var refElement = await card.QuerySelectorAsync(".ref");
                 var codigoTexto = refElement != null ? (await refElement.InnerTextAsync()).Trim() : string.Empty;
 
@@ -124,7 +129,7 @@ public class AkitemScraper : AbstractScraper, IScraper
     {
         if (string.IsNullOrWhiteSpace(texto)) return 0m;
 
-        var match = Regex.Match(texto, @"[\d\.]+\,\d{2}");
+        var match = Regex.Match(texto, @"[\d.]+\,\d{2}");
         if (match.Success)
         {
             var valorLimpo = match.Value.Replace(".", "").Replace(",", ".");

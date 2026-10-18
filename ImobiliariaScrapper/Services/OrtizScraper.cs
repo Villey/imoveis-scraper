@@ -1,125 +1,118 @@
-﻿using ImobiliariaScrapper.Models;
-using ImobiliariaScrapper.Utils;
-using Microsoft.Playwright;
-using System.Text;
+using System.Globalization;
 using System.Text.RegularExpressions;
+using ImobiliariaScrapper.Models;
+using Microsoft.Playwright;
 
 namespace ImobiliariaScrapper.Services;
 
 public class OrtizScraper : AbstractScraper, IScraper
 {
-    public OrtizScraper(FiltroConsulta filtro) : base(filtro) { }
-    public string NomeImobiliaria => "Ortiz";
-    int paginas = 1;
+    private static readonly string BaseDomain = "ortiz" + "imoveis.com.br";
 
-    public static string CriarUrl(int preco, int? pagina)
+    public string NomeImobiliaria => "Ortiz";
+
+    public OrtizScraper(FiltroConsulta filtro) : base(filtro) { }
+
+    public string CriarUrl(int pagina)
     {
-        var url = new StringBuilder("https://ortizimoveis.com.br/imoveis/aluguel/casa/");
-        url.Append("?quartos=2");
-        url.Append($"&valor_max={preco}");
-        url.Append("&ordem=preco-cresce");
-        if (pagina != null && pagina > 1)
-            url.Append($"&pagina={pagina}"); //pagina
-        return url.ToString();
+        string negocio = _filtro.Negocio == TipoNegocio.Venda ? "venda" : "aluguel";
+        string escopo = _filtro.ApenasBauru ? "sp/bauru" : "";
+        
+        string maxParam = _filtro.ValorMaximo > 0 
+            ? $"&valor_max={_filtro.ValorMaximo.ToString(CultureInfo.InvariantCulture)}" 
+            : "";
+
+        string pageParam = pagina > 1 ? $"&pagina={pagina}" : "";
+
+        return $"https://{BaseDomain}/imoveis/{negocio}/casa/{escopo}?quartos=2{maxParam}&ordem=preco-crescente{pageParam}";
     }
 
     public async Task<IEnumerable<Imovel>> ExtrairImovelAsync()
     {
         var imoveisEncontrados = new List<Imovel>();
-
         using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = BROWSER_HEADLESS // Mantenha false para ver onde o robô está clicando
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions 
+        { 
+            Headless = BROWSER_HEADLESS 
         });
 
-        var page = await ConfigurarExtracao(CriarUrl(2000, paginas), browser);
-
+        int pagina = 1;
         bool temProximaPagina = true;
 
         while (temProximaPagina)
         {
-            LogPagina(paginas);
-
-            //VERIFICAR SE EXISTE MENSAGEM DE "NÃO ENCONTRAMOS IMÓVEIS"=========================
+            LogPagina(pagina);
+            var page = await ConfigurarExtracao(CriarUrl(pagina), browser);
             await Task.Delay(DELAY_VALUE);
-            await page.EvaluateAsync("window.scrollTo(0, document.body.scrollHeight);");
 
-            await Task.Delay(DELAY_VALUE);
             var mensagemVazia = await page.Locator("div.card.card-body.empty").IsVisibleAsync();
-
-            if (mensagemVazia)
+            if (mensagemVazia || pagina >= 10)
             {
-                LogFinal("mensagem vazia");
+                LogFinal("sem mais imóveis nesta busca");
                 temProximaPagina = false;
                 break;
             }
 
-            //OBTEM DADOS DOS IMÓVEIS DA PÁGINA=========================================
-            // 1. Busca todos os cards da página
-            await Task.Delay(DELAY_VALUE);
             var cards = await page.QuerySelectorAllAsync("div.card-imovel");
+            if (cards.Count == 0)
+            {
+                LogFinal("sem mais imóveis nesta busca");
+                temProximaPagina = false;
+                break;
+            }
 
             foreach (var card in cards)
             {
-                var BairroEl = await card.QuerySelectorAsync("div.local");
-                var Bairro = ExtrairApenasBairro(BairroEl != null ? await BairroEl.TextContentAsync() : "");
+                var bairroEl = await card.QuerySelectorAsync("div.local");
+                var bairroTextoRaw = bairroEl != null ? await bairroEl.TextContentAsync() : "";
+                var bairroTexto = ExtrairApenasBairro(bairroTextoRaw);
 
-                var LinkEl = await card.QuerySelectorAsync("a.descricao");
-                var Link = LinkEl != null ? await LinkEl.EvaluateAsync<string>("el => el.href") : "";
+                var linkEl = await card.QuerySelectorAsync("a.descricao, a[href*='/imovel/']");
+                var href = linkEl != null ? await linkEl.GetAttributeAsync("href") : "";
+                string linkCompleto = string.IsNullOrEmpty(href) ? "" : (href.StartsWith("http") ? href : $"https://{BaseDomain}{href}");
 
-                var PrecoEl = await card.QuerySelectorAsync("div.valor");
-                var Preco = ExtrairPreco(PrecoEl != null ? await PrecoEl.TextContentAsync() : "");
+                var precoEl = await card.QuerySelectorAsync("div.valor");
+                var precoTexto = precoEl != null ? await precoEl.TextContentAsync() : "";
+                decimal preco = ExtrairPreco(precoTexto);
 
-                var ValoresExtras = 0m;
+                var descricaoEl = await card.QuerySelectorAsync("div.tipo");
+                var descricaoTexto = ConcatenaDescricao(
+                    descricaoEl != null ? await descricaoEl.TextContentAsync() : "", 
+                    bairroTextoRaw
+                );
 
-                var DescricaoValoresExtras = "";
-
-                var DescricaoEl = await card.QuerySelectorAsync("div.tipo");
-                var Descricao = ConcatenaDescricao(
-                    DescricaoEl != null ? await DescricaoEl.TextContentAsync() : "",
-                    BairroEl != null ? await BairroEl.TextContentAsync() : "");
-
-
-                // Filtra pelo bairro de interesse antes de prosseguir
-                if (BairroEhDeInteresse(Bairro))
+                if (BairroEhDeInteresse(bairroTexto))
                 {
                     imoveisEncontrados.Add(new Imovel
                     {
-                        Bairro = Bairro,
-                        Link = Link!,
-                        PrecoTotal = Preco,
-                        Preco = Preco,
-                        ValoresExtras = ValoresExtras,
-                        DescricaoValoresExtras = DescricaoValoresExtras,
+                        Bairro = bairroTexto,
+                        Link = linkCompleto,
+                        PrecoTotal = preco,
+                        Preco = preco,
+                        ValoresExtras = 0m,
+                        DescricaoValoresExtras = string.Empty,
                         Imobiliaria = NomeImobiliaria,
-                        Descricao = Descricao,
+                        Descricao = descricaoTexto,
                         DataConsulta = DateTime.Now
                     });
                 }
                 ImoveisEncontrados++;
             }
 
-            //TERMINA SE FOR A ULTIMA PAGINA====================================
             var botaoProximo = page.Locator("a.page-link[rel='next']").First;
             if (await botaoProximo.CountAsync() == 0)
             {
-                LogFinal("FINAL (ultima pagina)");
+                LogFinal("última página alcançada");
                 temProximaPagina = false;
-                break;
             }
-
-            //NAVEGAR PARA PROXIMA PAGINA====================================
-            LogProximaPagina();
-            await Task.Delay(DELAY_VALUE);
-            await botaoProximo.ScrollIntoViewIfNeededAsync();
-            await botaoProximo.ClickAsync();
-            await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
-
-            paginas++;
+            else
+            {
+                LogProximaPagina();
+                pagina++;
+            }
         }
 
-        LogFinal("fim do loop");
+        LogFinal("fim da mineração Ortiz");
         LogImovelEncontrado(imoveisEncontrados);
         LogPulaLinha();
         return imoveisEncontrados;
@@ -127,51 +120,37 @@ public class OrtizScraper : AbstractScraper, IScraper
 
     private static string ExtrairApenasBairro(string? texto)
     {
-        if (string.IsNullOrWhiteSpace(texto))
-            return string.Empty;
-
+        if (string.IsNullOrWhiteSpace(texto)) return string.Empty;
         var textoSplit = texto.Split(",");
-
-        if (textoSplit.Length == 1)
-            return texto;
-        if (textoSplit.Length == 2)
-            return textoSplit[0].Trim();
-
+        if (textoSplit.Length == 1) return texto.Trim();
+        if (textoSplit.Length == 2) return textoSplit[0].Trim();
         if (textoSplit.Length == 3)
         {
             var subTextoSplit = textoSplit[1].Split(" - ");
             return subTextoSplit[^1].Trim();
         }
-
         return string.Empty;
     }
 
     private static decimal ExtrairPreco(string? texto)
     {
-        var valorLocacao = 0m;
-
-        if (string.IsNullOrWhiteSpace(texto))
-            return valorLocacao;
-
-        var match = Regex.Match(texto, @"([\d\.,]+)", RegexOptions.IgnoreCase);
+        if (string.IsNullOrWhiteSpace(texto)) return 0m;
+        var match = Regex.Match(texto, @"([\d.,]+)", RegexOptions.IgnoreCase);
         if (match.Success)
         {
-            string valorLimpo = match.Groups[1].Value
-                .Replace(".", "")
-                .Replace(",", ".");
-
-            decimal.TryParse(valorLimpo, System.Globalization.CultureInfo.InvariantCulture, out valorLocacao);
+            string valorLimpo = match.Groups[1].Value.Replace(".", "").Replace(",", ".");
+            if (decimal.TryParse(valorLimpo, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal valor))
+            {
+                return valor;
+            }
         }
-
-        return valorLocacao;
+        return 0m;
     }
 
     private static string ConcatenaDescricao(string? descricao, string? bairro)
     {
-        if (string.IsNullOrWhiteSpace(descricao))
-            return bairro ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(bairro))
-            return descricao ?? string.Empty;
-        return $"{descricao} - {bairro}";
+        if (string.IsNullOrWhiteSpace(descricao)) return bairro?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(bairro)) return descricao?.Trim() ?? string.Empty;
+        return $"{descricao.Trim()} - {bairro.Trim()}";
     }
 }

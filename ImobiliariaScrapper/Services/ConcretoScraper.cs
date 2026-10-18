@@ -1,7 +1,8 @@
-﻿using ImobiliariaScrapper.Models;
-using Microsoft.Playwright;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using ImobiliariaScrapper.Models;
+using Microsoft.Playwright;
 
 namespace ImobiliariaScrapper.Services;
 
@@ -10,21 +11,33 @@ public class ConcretoScraper : AbstractScraper, IScraper
     public ConcretoScraper(FiltroConsulta filtro) : base(filtro) { }
 
     public string NomeImobiliaria => "Concreto";
-    int paginas = 1;
 
-    public static string CriarUrl(int preco, int? pagina)
+    public string CriarUrl(int pagina)
     {
+        string negocio = _filtro.Negocio == TipoNegocio.Venda ? "V" : "L";
+        string cidadeParam = _filtro.ApenasBauru ? "&id_cidade%5B%5D=521" : string.Empty;
+        string vmaParam = string.Empty;
+
+        if (_filtro.ValorMaximo > 0)
+        {
+            string valorFormatado = _filtro.ValorMaximo.ToString("#,##0.00", new CultureInfo("pt-BR"));
+            string valorEncoded = Uri.EscapeDataString(valorFormatado);
+            vmaParam = $"&vma={valorEncoded}";
+        }
+
         var url = new StringBuilder("https://www.concretoimoveis.com.br/pesquisa-de-imoveis/");
-        url.Append("?busca_free=&locacao_venda=L");
-        url.Append($"&valor_loc_min_input=0&valor_loc_max_input={preco}");
-        url.Append("&valor_ven_min_input=0&valor_ven_max_input=0");
-        url.Append("&id_cidade[]=521");
-        url.Append("&id_tipo_imovel[]=61&id_tipo_imovel[]=49&id_tipo_imovel[]=136");
-        url.Append("&dormitorio=2&garagem=&finalidade=residencial");
-        url.Append("&a_min=&a_max=&area_tipo=area-util&vmi=&vma=");
+        url.Append($"?locacao_venda={negocio}");
+        url.Append(cidadeParam);
+        url.Append("&id_tipo_imovel%5B%5D=49");
+        url.Append("&finalidade=residencial&dormitorio=2&garagem=&vmi=");
+        url.Append(vmaParam);
         url.Append("&ordem=1");
-        if (pagina != null && pagina > 1)
-            url.Append($"&a_util_min=&a_util_max=&&pag{pagina}"); //pagina
+
+        if (pagina > 1)
+        {
+            url.Append($"&pag={pagina}");
+        }
+
         return url.ToString();
     }
 
@@ -35,24 +48,23 @@ public class ConcretoScraper : AbstractScraper, IScraper
         using var playwright = await Playwright.CreateAsync();
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Headless = BROWSER_HEADLESS // Mantenha false para ver onde o robô está clicando
+            Headless = BROWSER_HEADLESS
         });
 
-        var page = await ConfigurarExtracao(CriarUrl(2000, paginas), browser);
-
+        int pagina = 1;
         bool temProximaPagina = true;
+
+        var page = await ConfigurarExtracao(CriarUrl(pagina), browser);
 
         while (temProximaPagina)
         {
-            LogPagina(paginas);
+            LogPagina(pagina);
 
-            //VERIFICAR SE EXISTE MENSAGEM DE "NÃO ENCONTRAMOS IMÓVEIS"=========================
             await Task.Delay(DELAY_VALUE);
             await page.EvaluateAsync("window.scrollTo(0, document.body.scrollHeight);");
-
             await Task.Delay(DELAY_VALUE);
-            var mensagemVazia = await page.Locator("div:has-text('Nenhum imóvel encontrado')").IsVisibleAsync();
 
+            var mensagemVazia = await page.Locator("div:has-text('Nenhum imóvel encontrado')").IsVisibleAsync();
             if (mensagemVazia)
             {
                 LogFinal("mensagem vazia");
@@ -60,111 +72,111 @@ public class ConcretoScraper : AbstractScraper, IScraper
                 break;
             }
 
-            //OBTEM DADOS DOS IMÓVEIS DA PÁGINA=========================================
-            // 1. Busca todos os cards da página
-            await Task.Delay(DELAY_VALUE);
             var cards = await page.QuerySelectorAllAsync("div.muda_card1");
+            if (cards.Count == 0 || pagina >= 15)
+            {
+                LogFinal("sem mais imóveis nesta busca");
+                temProximaPagina = false;
+                break;
+            }
 
             foreach (var card in cards)
             {
-                var BairroEl = await card.QuerySelectorAsync("div.card-bairro-cidade-texto");
-                var Bairro = ExtrairApenasBairro(BairroEl != null ? await BairroEl.TextContentAsync() : "");
-                
-                var LinkEl = await card.QuerySelectorAsync("a.carousel-cell.is-selected");
-                var Link = LinkEl != null ? await LinkEl.EvaluateAsync<string>("el => el.href") : "";
-                
-                var PrecoEl = await card.QuerySelectorAsync("div.card-valores");
-                var Preco = ExtrairPreco(PrecoEl != null ? await PrecoEl.TextContentAsync() : "");
+                var bairroEl = await card.QuerySelectorAsync("div.card-bairro-cidade-texto");
+                var bairro = ExtrairApenasBairro(bairroEl != null ? await bairroEl.TextContentAsync() : string.Empty);
 
-                var ValoresExtras = 0m;
+                var linkEl = await card.QuerySelectorAsync("a.carousel-cell.is-selected");
+                var link = linkEl != null ? await linkEl.EvaluateAsync<string>("el => el.href") : string.Empty;
 
-                var DescricaoValoresExtras = "";
+                var precoEl = await card.QuerySelectorAsync("div.card-valores");
+                var preco = ExtrairPreco(precoEl != null ? await precoEl.TextContentAsync() : string.Empty, _filtro.Negocio);
 
-                var DescricaoEl = await card.QuerySelectorAsync("div.card-texto p");
-                var Descricao = DescricaoEl != null ? await DescricaoEl.TextContentAsync() : "";
+                var descricaoEl = await card.QuerySelectorAsync("div.card-texto p");
+                var descricao = descricaoEl != null ? await descricaoEl.TextContentAsync() : string.Empty;
 
-
-                // Filtra pelo bairro de interesse antes de prosseguir
-                if (BairroEhDeInteresse(Bairro))
+                if (BairroEhDeInteresse(bairro))
                 {
                     imoveisEncontrados.Add(new Imovel
                     {
-                        Bairro = Bairro,
-                        Link = Link!,
-                        PrecoTotal = Preco,
-                        Preco = Preco, 
-                        ValoresExtras = ValoresExtras,
-                        DescricaoValoresExtras = DescricaoValoresExtras,
+                        Bairro = bairro,
+                        Link = link,
+                        PrecoTotal = preco,
+                        Preco = preco,
+                        ValoresExtras = 0m,
+                        DescricaoValoresExtras = string.Empty,
                         Imobiliaria = NomeImobiliaria,
-                        Descricao = ExtrairDescricao(Descricao),
+                        Descricao = ExtrairDescricao(descricao),
                         DataConsulta = DateTime.Now
                     });
                 }
                 ImoveisEncontrados++;
             }
 
-            //TERMINA SE FOR A ULTIMA PAGINA====================================
             var ultimaPagina = page.Locator("li.disabled a[href]:has-text('»')");
-            if(await ultimaPagina.CountAsync() > 0)
+            if (await ultimaPagina.CountAsync() > 0)
             {
                 LogFinal("última página");
                 temProximaPagina = false;
                 break;
             }
 
-            //NAVEGAR PARA PROXIMA PAGINA====================================
             var botaoProximo = page.Locator("div.pagination a[href]:has-text('»')");
-            if(await botaoProximo.CountAsync() > 0)
+            if (await botaoProximo.CountAsync() > 0)
             {
                 LogProximaPagina();
                 await Task.Delay(DELAY_VALUE);
                 await botaoProximo.ScrollIntoViewIfNeededAsync();
                 await botaoProximo.ClickAsync();
                 await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
-
-                paginas++;
+                pagina++;
+            }
+            else
+            {
+                temProximaPagina = false;
             }
         }
 
-        LogFinal("fim do loop");
+        LogFinal("fim do loop Concreto");
         LogImovelEncontrado(imoveisEncontrados);
         LogPulaLinha();
+
         return imoveisEncontrados;
     }
 
     private static string ExtrairApenasBairro(string? texto)
     {
-        if (string.IsNullOrWhiteSpace(texto))
-            return string.Empty;
-
-        return texto.Split(" - ")[0].Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(texto)) return string.Empty;
+        return texto.Split(" - ")[0].Trim();
     }
 
-    private static decimal ExtrairPreco(string? texto)
+    private static decimal ExtrairPreco(string? texto, TipoNegocio negocio)
     {
-        var valorLocacao = 0m;
+        if (string.IsNullOrWhiteSpace(texto)) return 0m;
 
-        if (string.IsNullOrWhiteSpace(texto))
-            return valorLocacao;
+        string padrao = negocio == TipoNegocio.Venda
+            ? @"([\d.,]+)\s*(?:V|Venda)"
+            : @"([\d.,]+)\s*(?:L|Locação|Locacao)";
 
-        var match = Regex.Match(texto, @"([\d\.,]+)\s*L", RegexOptions.IgnoreCase);
-        if (match.Success)
+        var match = Regex.Match(texto, padrao, RegexOptions.IgnoreCase);
+        if (!match.Success)
         {
-            string valorLimpo = match.Groups[1].Value
-                .Replace(".", "")
-                .Replace(",", ".");
-
-            decimal.TryParse(valorLimpo, System.Globalization.CultureInfo.InvariantCulture, out valorLocacao);
+            match = Regex.Match(texto, @"([\d.,]+)");
         }
 
-        return valorLocacao;
+        if (match.Success)
+        {
+            string valorLimpo = match.Groups[1].Value.Replace(".", "").Replace(",", ".");
+            if (decimal.TryParse(valorLimpo, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal valor))
+            {
+                return valor;
+            }
+        }
+        return 0m;
     }
 
     private static string ExtrairDescricao(string? texto)
     {
-        if (string.IsNullOrWhiteSpace(texto))
-            return string.Empty;
-
+        if (string.IsNullOrWhiteSpace(texto)) return string.Empty;
         texto = texto.Length > 100 ? texto[..100] : texto;
         return texto.Replace("\n", " ").Replace("\r", " ").Replace("\t", " ").Replace(";", ",").Trim();
     }
