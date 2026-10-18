@@ -14,10 +14,20 @@ public class KazaScraper : AbstractScraper, IScraper
     public string CriarUrl(int pagina)
     {
         string negocio = _filtro.Negocio == TipoNegocio.Venda ? "venda" : "aluguel";
-        string cidade = _filtro.ApenasBauru ? "1-bauru" : "todas";
-        string maxParam = _filtro.ValorMaximo > 0 ? $"&max={_filtro.ValorMaximo.ToString(CultureInfo.InvariantCulture)}" : "";
+        
+        // Se for apenas Bauru: "2-casa/1-bauru"
+        // Se for todas as cidades: "imoveis"
+        string escopo = _filtro.ApenasBauru ? "1-bauru" : "";
 
-        return $"https://imobiliariakaza.com.br/busca/{negocio}/2-casa/{cidade}?quartos=2{maxParam}&ordem=menor&page={pagina}";
+        string maxParam = string.Empty;
+        if (_filtro.ValorMaximo > 0)
+        {
+            // Formata com separador de milhar pt-BR (ex: 1500 -> "1.500")
+            string valorFormatado = _filtro.ValorMaximo.ToString("#,##0", new CultureInfo("pt-BR"));
+            maxParam = $"&max={valorFormatado}";
+        }
+
+        return $"https://imobiliariakaza.com.br/busca/{negocio}/2-casa/{escopo}?quartos=2{maxParam}&ordem=menor&page={pagina}";
     }
 
     public async Task<IEnumerable<Imovel>> ExtrairImovelAsync()
@@ -63,9 +73,16 @@ public class KazaScraper : AbstractScraper, IScraper
                     ? string.Empty 
                     : (href.StartsWith("http") ? href : $"https://imobiliariakaza.com.br{href}");
 
-                // 3. Preço
-                string termoValor = _filtro.Negocio == TipoNegocio.Venda ? "VENDA" : "LOCAÇÃO";
-                var precoElement = await card.QuerySelectorAsync($".valor:has-text('{termoValor}')");
+                // 3. Preço (busca pelo rótulo dinâmico: VENDA ou LOCAÇÃO)
+                string rotuloPreco = _filtro.Negocio == TipoNegocio.Venda ? "VENDA" : "LOCAÇÃO";
+                var precoElement = await card.QuerySelectorAsync($".valor:has-text('{rotuloPreco}')");
+                
+                // Fallback para pegar qualquer div.valor caso o rótulo específico não seja encontrado
+                if (precoElement == null)
+                {
+                    precoElement = await card.QuerySelectorAsync(".valor");
+                }
+
                 var precoTexto = precoElement != null ? await precoElement.InnerTextAsync() : string.Empty;
                 decimal preco = LimparEConverterPreco(precoTexto);
 
