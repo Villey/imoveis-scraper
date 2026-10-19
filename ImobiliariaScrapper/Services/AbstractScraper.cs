@@ -32,8 +32,10 @@ public abstract class AbstractScraper
         return page;
     }
 
-    public static bool BairroEhDeInteresse(string texto)
+    public static bool BairroEhDeInteresse(string texto, bool apenasBauru)
     {
+        if (apenasBauru) return true;
+
         if (string.IsNullOrWhiteSpace(texto)) return false;
 
         return !Utils.Bairros.BairrosExcluir.Any(b =>

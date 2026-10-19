@@ -17,10 +17,8 @@ public class AkitemScraper : AbstractScraper, IScraper
     {
         string negocio = _filtro.Negocio == TipoNegocio.Venda ? "venda" : "aluguel";
         string escopo = _filtro.ApenasBauru ? "sp/bauru/" : "";
-        string maxParam = _filtro.ValorMaximo > 0 
-            ? $"&valor_max={_filtro.ValorMaximo.ToString("F0", CultureInfo.InvariantCulture)}" 
-            : "";
-        string pageParam = pagina > 1 ? $"&page={pagina}" : "";
+        string maxParam = $"&valor_max={_filtro.ValorMaximo}";
+        string pageParam = pagina > 1 ? $"&pagina={pagina}" : "";
 
         return $"https://{BaseDomain}/imoveis/{negocio}/casa/{escopo}?quartos=2{maxParam}&ordem=preco-crescente{pageParam}";
     }
@@ -84,11 +82,11 @@ public class AkitemScraper : AbstractScraper, IScraper
                 var precoTexto = precoElement != null ? await precoElement.InnerTextAsync() : string.Empty;
                 decimal preco = LimparEConverterPreco(precoTexto);
 
-                // 4. Código do imóvel
-                var refElement = await card.QuerySelectorAsync(".ref");
-                var codigoTexto = refElement != null ? (await refElement.InnerTextAsync()).Trim() : string.Empty;
+                // 4. descriçao
+                var descricaoElement = await card.QuerySelectorAsync(".infos p");
+                var descricaoTexto = descricaoElement != null ? await descricaoElement.InnerTextAsync() : string.Empty;
 
-                if (BairroEhDeInteresse(bairroTexto))
+                if (BairroEhDeInteresse(bairroTexto, _filtro.ApenasBauru))
                 {
                     imoveisEncontrados.Add(new Imovel
                     {
@@ -99,7 +97,7 @@ public class AkitemScraper : AbstractScraper, IScraper
                         ValoresExtras = 0m,
                         DescricaoValoresExtras = string.Empty,
                         Imobiliaria = NomeImobiliaria,
-                        Descricao = string.IsNullOrEmpty(codigoTexto) ? "Sem Código" : $"Cód {codigoTexto}",
+                        Descricao = descricaoTexto,
                         DataConsulta = DateTime.Now
                     });
                 }
@@ -128,8 +126,8 @@ public class AkitemScraper : AbstractScraper, IScraper
     private static decimal LimparEConverterPreco(string? texto)
     {
         if (string.IsNullOrWhiteSpace(texto)) return 0m;
-
-        var match = Regex.Match(texto, @"[\d.]+\,\d{2}");
+        //1.300
+        var match = Regex.Match(texto, @"[\d\.\,]+");
         if (match.Success)
         {
             var valorLimpo = match.Value.Replace(".", "").Replace(",", ".");

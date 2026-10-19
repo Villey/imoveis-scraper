@@ -86,11 +86,7 @@ public class KazaScraper : AbstractScraper, IScraper
                 var precoTexto = precoElement != null ? await precoElement.InnerTextAsync() : string.Empty;
                 decimal preco = LimparEConverterPreco(precoTexto);
 
-                // 4. Código do imóvel
-                var refElement = await card.QuerySelectorAsync(".ref");
-                var codigoTexto = refElement != null ? (await refElement.InnerTextAsync()).Trim() : string.Empty;
-
-                if (BairroEhDeInteresse(bairroTexto))
+                if (BairroEhDeInteresse(bairroTexto, _filtro.ApenasBauru))
                 {
                     imoveisEncontrados.Add(new Imovel
                     {
@@ -101,7 +97,7 @@ public class KazaScraper : AbstractScraper, IScraper
                         ValoresExtras = 0m,
                         DescricaoValoresExtras = string.Empty,
                         Imobiliaria = NomeImobiliaria,
-                        Descricao = string.IsNullOrEmpty(codigoTexto) ? "Sem Código" : $"Cód {codigoTexto}",
+                        Descricao = locTexto,
                         DataConsulta = DateTime.Now
                     });
                 }

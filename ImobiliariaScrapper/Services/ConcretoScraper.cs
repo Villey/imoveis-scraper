@@ -94,7 +94,7 @@ public class ConcretoScraper : AbstractScraper, IScraper
                 var descricaoEl = await card.QuerySelectorAsync("div.card-texto p");
                 var descricao = descricaoEl != null ? await descricaoEl.TextContentAsync() : string.Empty;
 
-                if (BairroEhDeInteresse(bairro))
+                if (BairroEhDeInteresse(bairro, _filtro.ApenasBauru))
                 {
                     imoveisEncontrados.Add(new Imovel
                     {

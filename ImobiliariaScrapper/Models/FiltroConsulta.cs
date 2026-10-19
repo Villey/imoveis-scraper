@@ -9,6 +9,6 @@ public enum TipoNegocio
 public class FiltroConsulta
 {
     public TipoNegocio Negocio { get; set; } = TipoNegocio.Aluguel;
-    public decimal ValorMaximo { get; set; }
+    public int ValorMaximo { get; set; }
     public bool ApenasBauru { get; set; } = true;
 }

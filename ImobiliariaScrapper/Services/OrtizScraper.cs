@@ -17,11 +17,7 @@ public class OrtizScraper : AbstractScraper, IScraper
     {
         string negocio = _filtro.Negocio == TipoNegocio.Venda ? "venda" : "aluguel";
         string escopo = _filtro.ApenasBauru ? "sp/bauru" : "";
-        
-        string maxParam = _filtro.ValorMaximo > 0 
-            ? $"&valor_max={_filtro.ValorMaximo.ToString(CultureInfo.InvariantCulture)}" 
-            : "";
-
+        string maxParam = $"&valor_max={_filtro.ValorMaximo}";
         string pageParam = pagina > 1 ? $"&pagina={pagina}" : "";
 
         return $"https://{BaseDomain}/imoveis/{negocio}/casa/{escopo}?quartos=2{maxParam}&ordem=preco-crescente{pageParam}";
@@ -81,7 +77,7 @@ public class OrtizScraper : AbstractScraper, IScraper
                     bairroTextoRaw
                 );
 
-                if (BairroEhDeInteresse(bairroTexto))
+                if (BairroEhDeInteresse(bairroTexto, _filtro.ApenasBauru))
                 {
                     imoveisEncontrados.Add(new Imovel
                     {

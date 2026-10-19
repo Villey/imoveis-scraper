@@ -14,7 +14,7 @@ var opcaoNegocio = Console.ReadLine();
 filtro.Negocio = opcaoNegocio == "2" ? TipoNegocio.Venda : TipoNegocio.Aluguel;
 
 Console.Write("2. Qual o Valor Máximo em R$? (Ex: 2000) [0 para sem limite]: ");
-if (decimal.TryParse(Console.ReadLine(), out decimal valor))
+if (int.TryParse(Console.ReadLine(), out int valor))
 {
     filtro.ValorMaximo = valor;
 }
@@ -32,12 +32,13 @@ var services = new ServiceCollection();
 services.AddSingleton(filtro);
 
 // Registra os scrapers
+services.AddTransient<IScraper, ZappingScraper>();
+services.AddTransient<IScraper, GilarScraper>();
+services.AddTransient<IScraper, ConcretoScraper>();
 services.AddTransient<IScraper, KazaScraper>();
 services.AddTransient<IScraper, AkitemScraper>();
-//services.AddTransient<IScraper, GilarScraper>();
-//services.AddTransient<IScraper, ZappingScraper>();
-//services.AddTransient<IScraper, ConcretoScraper>();
-//services.AddTransient<IScraper, OrtizScraper>();
+services.AddTransient<IScraper, OrtizScraper>();
+services.AddTransient<IScraper, GuerreiroScraper>();
 services.AddTransient<ScrapingOrchestrator>();
 
 var serviceProvider = services.BuildServiceProvider();

@@ -7,7 +7,7 @@ namespace ImobiliariaScrapper.Services;
 
 public class GilarScraper : AbstractScraper, IScraper
 {
-    private static readonly string BaseDomain = "gilar" + ".com.br";
+    private static readonly string BaseDomain = "gilar.com.br";
 
     public GilarScraper(FiltroConsulta filtro) : base(filtro) { }
 
@@ -17,8 +17,7 @@ public class GilarScraper : AbstractScraper, IScraper
     {
         string negociacao = _filtro.Negocio == TipoNegocio.Venda ? "Comprar" : "Alugar";
         string cidadeParam = _filtro.ApenasBauru ? "&CidadeId=11" : "";
-        string precoMax = _filtro.ValorMaximo > 0 ? ((long)_filtro.ValorMaximo).ToString(CultureInfo.InvariantCulture) : "0";
-        string precoParam = $"&IntervaloPreco=0%2C{precoMax}";
+        string precoParam = $"&IntervaloPreco=0%2C{_filtro.ValorMaximo}";
 
         string url = $"https://www.{BaseDomain}/Imovel/Lista?Negociacao={negociacao}&IdTipoIdSubtipo=R_2{precoParam}{cidadeParam}&Dormitorios=2&Ordem=2";
 
@@ -81,7 +80,7 @@ public class GilarScraper : AbstractScraper, IScraper
                 var codigoTexto = codElement != null ? await codElement.InnerTextAsync() : string.Empty;
 
                 // Filtra pelo bairro de interesse antes de prosseguir
-                if (BairroEhDeInteresse(bairroTexto))
+                if (BairroEhDeInteresse(bairroTexto, _filtro.ApenasBauru))
                 {
                     imoveisEncontrados.Add(new Imovel
                     {
